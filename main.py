@@ -1,4 +1,4 @@
-# main.py
+# main.py with Tkinter GUI
 
 import pdfplumber
 import numpy as np
@@ -6,7 +6,8 @@ import pandas as pd
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-import argparse
+import tkinter as tk
+from tkinter import filedialog, messagebox
 
 def read_pdf(file_path):
     """Extract text from a PDF file."""
@@ -68,33 +69,81 @@ def generate_text_report(data, growth, output_path):
         
         f.write(f"Year of Report: {data.get('Year', 'N/A')}\n")
 
-def main():
-    # Set up argument parser for customization
-    parser = argparse.ArgumentParser(description="Financial Analysis Tool")
-    parser.add_argument("input_pdf", help="Path to the input PDF file for analysis")
-    parser.add_argument("output", help="Path for the output report (PDF or text file)")
-    parser.add_argument("--report_format", choices=["pdf", "text"], default="pdf", 
-                        help="Specify the output format: 'pdf' or 'text' (default: 'pdf')")
+def browse_pdf_file():
+    """Open file dialog to select a PDF file."""
+    file_path = filedialog.askopenfilename(filetypes=[("PDF Files", "*.pdf")])
+    entry_pdf.delete(0, tk.END)
+    entry_pdf.insert(0, file_path)
+
+def browse_output_file():
+    """Open file dialog to select where to save the report."""
+    file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF Files", "*.pdf"), ("Text Files", "*.txt")])
+    entry_output.delete(0, tk.END)
+    entry_output.insert(0, file_path)
+
+def generate_report():
+    """Run financial analysis and generate the report."""
+    input_pdf = entry_pdf.get()
+    output_path = entry_output.get()
+    report_format = var_report_format.get()
     
-    args = parser.parse_args()
+    if not input_pdf or not output_path:
+        messagebox.showerror("Error", "Please select both input PDF and output path.")
+        return
     
-    # Step 1: Read the document
-    document_text = read_pdf(args.input_pdf)
+    # Read the document
+    document_text = read_pdf(input_pdf)
     
-    # Step 2: Extract financial data
+    # Extract financial data
     financial_data = extract_financial_data(document_text)
     
-    # Step 3: Calculate financial metrics (e.g., growth rate)
+    # Calculate growth
     growth_rate = calculate_growth(financial_data)
     
-    # Step 4: Generate report based on user choice (PDF or text)
-    if args.report_format == "pdf":
-        generate_pdf_report(financial_data, growth_rate, args.output)
-        print(f"PDF Report generated successfully at {args.output}")
-    else:
-        generate_text_report(financial_data, growth_rate, args.output)
-        print(f"Text Report generated successfully at {args.output}")
+    # Generate the report
+    try:
+        if report_format == "pdf":
+            generate_pdf_report(financial_data, growth_rate, output_path)
+            messagebox.showinfo("Success", f"PDF Report generated successfully at {output_path}")
+        else:
+            generate_text_report(financial_data, growth_rate, output_path)
+            messagebox.showinfo("Success", f"Text Report generated successfully at {output_path}")
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-if __name__ == "__main__":
-    main()
+# Create the GUI window
+window = tk.Tk()
+window.title("Financial Analysis Tool")
+window.geometry("500x300")
 
+# PDF file selection
+label_pdf = tk.Label(window, text="Select input PDF:")
+label_pdf.pack(pady=5)
+entry_pdf = tk.Entry(window, width=50)
+entry_pdf.pack(pady=5)
+button_browse_pdf = tk.Button(window, text="Browse", command=browse_pdf_file)
+button_browse_pdf.pack(pady=5)
+
+# Output file selection
+label_output = tk.Label(window, text="Select output file:")
+label_output.pack(pady=5)
+entry_output = tk.Entry(window, width=50)
+entry_output.pack(pady=5)
+button_browse_output = tk.Button(window, text="Browse", command=browse_output_file)
+button_browse_output.pack(pady=5)
+
+# Report format selection
+label_report_format = tk.Label(window, text="Select report format:")
+label_report_format.pack(pady=5)
+var_report_format = tk.StringVar(value="pdf")
+radio_pdf = tk.Radiobutton(window, text="PDF", variable=var_report_format, value="pdf")
+radio_pdf.pack(pady=5)
+radio_text = tk.Radiobutton(window, text="Text", variable=var_report_format, value="text")
+radio_text.pack(pady=5)
+
+# Generate report button
+button_generate = tk.Button(window, text="Generate Report", command=generate_report)
+button_generate.pack(pady=20)
+
+# Start the Tkinter event loop
+window.mainloop()

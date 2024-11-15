@@ -1,27 +1,56 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from io import BytesIO, StringIO
-import pdfplumber
+from io import BytesIO
 from fpdf import FPDF
+import datetime
 
-# App Title
-st.title("Financial Document Analysis with Growth Insights and PDF Reporting")
+# Function to load data
+def load_data(uploaded_file):
+    try:
+        if uploaded_file.name.endswith('.csv'):
+            data = pd.read_csv(uploaded_file)
+        elif uploaded_file.name.endswith('.pdf'):
+            data = extract_text_from_pdf(uploaded_file)  # You may need to implement a text extraction function
+        else:
+            st.error("Unsupported file type")
+            return None
+        return data
+    except Exception as e:
+        st.error(f"An error occurred while loading the file: {e}")
+        return None
 
-# Helper Function to Extract Table from PDF
-def extract_pdf_table(pdf_file):
-    with pdfplumber.open(pdf_file) as pdf:
-        for page in pdf.pages:
-            tables = page.extract_tables()
-            if tables:
-                # Assume the first table is the relevant one
-                df = pd.DataFrame(tables[0][1:], columns=tables[0][0])
-                return df
-    return None
+# Function to generate a report summary
+def generate_report(data, date_column, numeric_columns):
+    report = {}
 
-# Helper Function to Generate PDF Report
-def generate_pdf_report(report_data, output_file):
+    # General information
+    report['Total Rows'] = len(data)
+    report['Total Columns'] = len(data.columns)
+
+    # Date-related analysis
+    if date_column:
+        data[date_column] = pd.to_datetime(data[date_column], errors='coerce')
+        report['Date Range'] = f"{data[date_column].min()} to {data[date_column].max()}"
+
+    # Numeric analysis
+    for column in numeric_columns:
+        column_data = data[column]
+        report[f'{column} - Total'] = column_data.sum()
+        report[f'{column} - Mean'] = column_data.mean()
+        report[f'{column} - Max'] = column_data.max()
+        report[f'{column} - Min'] = column_data.min()
+
+    return report
+
+# Function to convert the report to a text format for display
+def format_report(report):
+    report_text = ""
+    for key, value in report.items():
+        report_text += f"{key}: {value}\n"
+    return report_text
+
+# Function to generate PDF report
+def generate_pdf_report(report_data):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
@@ -35,103 +64,46 @@ def generate_pdf_report(report_data, output_file):
         pdf.set_font("Arial", style="B", size=14)
         pdf.cell(0, 10, section, ln=True)
         pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0, 10, content)
+        pdf.multi_cell(0, 10, str(content))
     
-    pdf.output(output_file)
+    # Save the PDF data to a BytesIO object
+    pdf_buffer = BytesIO()
+    pdf.output(pdf_buffer, 'S').encode('latin1')
+    pdf_buffer.seek(0)
+    return pdf_buffer
 
-# Upload Section
-uploaded_file = st.file_uploader("Upload a financial document (CSV, Excel, or PDF)", type=["csv", "xlsx", "pdf"])
+# Streamlit interface
+st.title("Financial Document Analysis Tool")
 
-if uploaded_file:
-    try:
-        # Load Data
-        if uploaded_file.name.endswith(".csv"):
-            df = pd.read_csv(uploaded_file)
-        elif uploaded_file.name.endswith(".xlsx"):
-            df = pd.read_excel(uploaded_file)
-        elif uploaded_file.name.endswith(".pdf"):
-            df = extract_pdf_table(uploaded_file)
-            if df is None:
-                st.error("No table found in the PDF.")
-                st.stop()
-        else:
-            st.error("Unsupported file type.")
-            st.stop()
+# File upload
+uploaded_file = st.file_uploader("Upload a CSV or PDF file", type=['csv', 'pdf'])
+if uploaded_file is not None:
+    data = load_data(uploaded_file)
+    if data is not None:
+        st.write("Data Preview:")
+        st.write(data.head())
 
-        st.subheader("Data Preview")
-        st.dataframe(df.head())
+        # Column selection for analysis
+        date_column = st.selectbox("Select the date column", [None] + list(data.columns))
+        numeric_columns = st.multiselect("Select numeric columns for analysis", data.select_dtypes(include='number').columns)
 
-        # Select columns for analysis
-        date_column = st.selectbox("Select the date column", df.columns)
+        # Run analysis
+        if st.button("Analyze"):
+            with st.spinner("Analyzing..."):
+                try:
+                    report_content = generate_report(data, date_column, numeric_columns)
+                    formatted_report = format_report(report_content)
+                    st.text_area("Report Summary", formatted_report, height=200)
+                except Exception as e:
+                    st.error(f"An error occurred during analysis: {e}")
 
-        # Clean the date column
-        df[date_column] = pd.to_datetime(df[date_column], errors='coerce')
-        df = df.dropna(subset=[date_column])  # Drop rows where date parsing failed
-        df = df.sort_values(by=date_column)
+        # Generate and Download PDF Report
+        st.subheader("Download Report")
+        pdf_buffer = generate_pdf_report(report_content)
 
-        # Identify numeric columns, ignoring those with non-numeric values
-        numeric_columns = df.select_dtypes(include=[np.number]).columns.tolist()
-        
-        # Check if any numeric columns are available for selection
-        if not numeric_columns:
-            st.warning("No valid numeric columns available for analysis.")
-        else:
-            selected_columns = st.multiselect("Select numeric columns for analysis", numeric_columns)
-
-            if selected_columns:
-                # Initialize Report Content
-                report_content = {"Overview": f"Date Range: {df[date_column].min().date()} to {df[date_column].max().date()}"}
-
-                st.subheader("Growth Analysis")
-                for column in selected_columns:
-                    # Calculate Growth Rates
-                    df[f"{column}_growth"] = df[column].pct_change() * 100
-
-                    # Insights
-                    avg_growth = df[f"{column}_growth"].mean()
-                    recent_growth = df[f"{column}_growth"].iloc[-1]
-                    total_growth = ((df[column].iloc[-1] - df[column].iloc[0]) / df[column].iloc[0]) * 100
-
-                    # Display Insights in App
-                    st.write(f"**{column.capitalize()} Analysis:**")
-                    st.write(f"- Total Growth: {total_growth:.2f}%")
-                    st.write(f"- Average Growth: {avg_growth:.2f}%")
-                    st.write(f"- Most Recent Growth: {recent_growth:.2f}%")
-
-                    # Add Insights to Report
-                    report_content[f"{column.capitalize()} Analysis"] = (
-                        f"- Total Growth: {total_growth:.2f}%\n"
-                        f"- Average Growth: {avg_growth:.2f}%\n"
-                        f"- Most Recent Growth: {recent_growth:.2f}%\n"
-                    )
-
-                    # Plot Growth
-                    st.line_chart(df[[date_column, f"{column}_growth"]].set_index(date_column))
-
-                # Summary Section
-                summary = ""
-                for column in selected_columns:
-                    past = df[column].iloc[0]
-                    recent = df[column].iloc[-1]
-                    total_growth = ((recent - past) / past) * 100
-                    summary += (
-                        f"- {column.capitalize()} grew from {past:.2f} to {recent:.2f}, "
-                        f"a total growth of {total_growth:.2f}% over the period.\n"
-                    )
-                report_content["Summary"] = summary
-
-                # Generate and Download PDF Report
-                st.subheader("Download Report")
-                pdf_buffer = BytesIO()
-                generate_pdf_report(report_content, pdf_buffer)
-                pdf_buffer.seek(0)
-
-                st.download_button(
-                    label="Download PDF Report",
-                    data=pdf_buffer,
-                    file_name="financial_analysis_report.pdf",
-                    mime="application/pdf"
-                )
-
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_buffer,
+            file_name="financial_analysis_report.pdf",
+            mime="application/pdf"
+        )

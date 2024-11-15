@@ -25,16 +25,6 @@ def clean_column_names(df):
     df.columns = df.columns.str.strip()  # Remove leading/trailing spaces
     return df
 
-# Helper Function to Find Columns by Keyword
-def find_columns_by_keyword(df, keywords):
-    # Search for columns that contain the specified keywords (case-insensitive)
-    matching_columns = {}
-    for col in df.columns:
-        for keyword in keywords:
-            if keyword.lower() in col.lower():
-                matching_columns[col] = keyword
-    return matching_columns
-
 # Helper Function to Calculate Growth Insights
 def calculate_growth(df, salary_column, amount_column):
     df[amount_column] = pd.to_numeric(df[amount_column], errors='coerce')
@@ -86,19 +76,23 @@ if uploaded_file:
             st.dataframe(df)
             st.write("Column Names:", df.columns)
 
-            # Try to find the columns for Salary and Total Amount by keywords
-            keywords = ['salary', 'total amount', 'income', 'amount', 'earnings']
-            matching_columns = find_columns_by_keyword(df, keywords)
+            # Explicit column mapping (based on the output you shared)
+            column_mapping = {
+                'Salary Amount': 'Salary',
+                'Total Amount': 'Total Amount'
+            }
 
-            if matching_columns:
-                st.write("Matching Columns Found:", matching_columns)
-                
-                # Assume first match is 'Salary' and second match is 'Total Amount'
-                salary_column = next((col for col in matching_columns if 'salary' in matching_columns[col].lower()), None)
-                amount_column = next((col for col in matching_columns if 'amount' in matching_columns[col].lower()), None)
+            # Check for columns by mapping
+            mapped_columns = {new_col: old_col for old_col, new_col in column_mapping.items() if old_col in df.columns}
+
+            if mapped_columns:
+                st.write("Mapped Columns:", mapped_columns)
+
+                salary_column = mapped_columns.get('Salary', None)
+                amount_column = mapped_columns.get('Total Amount', None)
 
                 if salary_column and amount_column:
-                    # Calculate Growth Insights using the matched columns
+                    # Calculate Growth Insights using the mapped columns
                     df = calculate_growth(df, salary_column, amount_column)
                     st.write("Growth Insights:")
                     st.dataframe(df[[salary_column, amount_column, 'Growth Rate']])
@@ -139,7 +133,7 @@ if uploaded_file:
                 else:
                     st.error("Could not identify appropriate columns for 'Salary' and 'Total Amount'.")
             else:
-                st.error("No columns matching the required keywords ('salary', 'total amount', etc.) were found.")
+                st.error("No mapped columns found for 'Salary' and 'Total Amount'.")
         else:
             st.error("Could not extract data from the uploaded document.")
 

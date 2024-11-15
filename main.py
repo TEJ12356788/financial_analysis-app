@@ -27,17 +27,20 @@ def clean_column_names(df):
 
 # Helper Function to Calculate Growth Insights
 def calculate_growth(df, salary_column, amount_column):
-    # Convert non-numeric columns to NaN (use 'coerce' to handle errors)
+    # Print the column data types for debugging purposes
+    st.write("Column Data Types:", df.dtypes)
+
+    # Convert relevant columns to numeric, coercing errors
     df[amount_column] = pd.to_numeric(df[amount_column], errors='coerce')
     
-    # Filter out datetime columns and other non-numeric types
-    numeric_df = df.select_dtypes(include=[np.number])
+    # Ensure that only numeric columns are used for growth calculation
+    df = df.select_dtypes(include=[np.number])  # Filter out non-numeric columns
     
-    # Check if the salary and amount columns exist in the numeric dataframe
-    if salary_column in numeric_df.columns and amount_column in numeric_df.columns:
+    # Check that the salary and amount columns exist
+    if salary_column in df.columns and amount_column in df.columns:
         # Calculate growth rate for the Total Amount
-        numeric_df['Growth Rate'] = numeric_df[amount_column].pct_change() * 100  # Growth rate in percentage
-    return numeric_df
+        df['Growth Rate'] = df[amount_column].pct_change() * 100  # Growth rate in percentage
+    return df
 
 # Helper Function to Generate PDF Report
 def generate_pdf_report(report_data):
@@ -83,9 +86,9 @@ if uploaded_file:
             st.markdown("### Uploaded Data Preview:")
             st.dataframe(df.style.highlight_max(axis=0))  # Highlights the maximum values for each column
             
-            # Display column names to help users understand the data structure
-            st.markdown("### Column Names:")
-            st.write(df.columns)
+            # Display column names and data types to help users understand the data structure
+            st.markdown("### Column Names and Data Types:")
+            st.write(df.dtypes)
 
             # Explicit column mapping (based on the output you shared)
             column_mapping = {
@@ -102,16 +105,16 @@ if uploaded_file:
 
             if salary_column and amount_column:
                 # Calculate Growth Insights using the mapped columns
-                numeric_df = calculate_growth(df, salary_column, amount_column)
+                df = calculate_growth(df, salary_column, amount_column)
 
                 # Display the growth insights in a styled table
                 st.markdown("### Growth Insights:")
-                st.dataframe(numeric_df[[salary_column, amount_column, 'Growth Rate']].style.format({salary_column: "{:,.0f}", amount_column: "{:,.2f}", 'Growth Rate': "{:.2f}%"}))
+                st.dataframe(df[[salary_column, amount_column, 'Growth Rate']].style.format({salary_column: "{:,.0f}", amount_column: "{:,.2f}", 'Growth Rate': "{:.2f}%"}))
 
                 # Plot the Growth Insights
                 st.markdown("### Growth Insights Visualization:")
                 fig, ax = plt.subplots(figsize=(10, 6))
-                ax.plot(numeric_df[salary_column], numeric_df[amount_column], label="Total Amount", marker='o')
+                ax.plot(df[salary_column], df[amount_column], label="Total Amount", marker='o')
                 ax.set_xlabel('Salary')
                 ax.set_ylabel('Total Amount')
                 ax.set_title('Total Amount Growth Over Salary')
@@ -120,7 +123,7 @@ if uploaded_file:
 
                 # Plot the Growth Rate
                 fig2, ax2 = plt.subplots(figsize=(10, 6))
-                ax2.plot(numeric_df[salary_column], numeric_df['Growth Rate'], label="Growth Rate", marker='x', color='r')
+                ax2.plot(df[salary_column], df['Growth Rate'], label="Growth Rate", marker='x', color='r')
                 ax2.set_xlabel('Salary')
                 ax2.set_ylabel('Growth Rate (%)')
                 ax2.set_title('Growth Rate Based on Salary')
@@ -150,3 +153,4 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+

@@ -71,10 +71,13 @@ if uploaded_file:
         if df is not None:
             df = clean_column_names(df)
 
-            # Display the DataFrame and column names for user inspection
-            st.write("Uploaded Data:")
-            st.dataframe(df)
-            st.write("Column Names:", df.columns)
+            # Display the DataFrame with nice styling
+            st.markdown("### Uploaded Data Preview:")
+            st.dataframe(df.style.highlight_max(axis=0))  # Highlights the maximum values for each column
+            
+            # Display column names to help users understand the data structure
+            st.markdown("### Column Names:")
+            st.write(df.columns)
 
             # Explicit column mapping (based on the output you shared)
             column_mapping = {
@@ -85,55 +88,55 @@ if uploaded_file:
             # Check for columns by mapping
             mapped_columns = {new_col: old_col for old_col, new_col in column_mapping.items() if old_col in df.columns}
 
-            if mapped_columns:
-                st.write("Mapped Columns:", mapped_columns)
+            # Directly use the mapped columns without displaying them
+            salary_column = mapped_columns.get('Salary', None)
+            amount_column = mapped_columns.get('Total Amount', None)
 
-                salary_column = mapped_columns.get('Salary', None)
-                amount_column = mapped_columns.get('Total Amount', None)
+            if salary_column and amount_column:
+                # Calculate Growth Insights using the mapped columns
+                df = calculate_growth(df, salary_column, amount_column)
 
-                if salary_column and amount_column:
-                    # Calculate Growth Insights using the mapped columns
-                    df = calculate_growth(df, salary_column, amount_column)
-                    st.write("Growth Insights:")
-                    st.dataframe(df[[salary_column, amount_column, 'Growth Rate']])
+                # Display the growth insights in a styled table
+                st.markdown("### Growth Insights:")
+                st.dataframe(df[[salary_column, amount_column, 'Growth Rate']].style.format({salary_column: "{:,.0f}", amount_column: "{:,.2f}", 'Growth Rate': "{:.2f}%"}))
 
-                    # Plot the Growth Insights
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    ax.plot(df[salary_column], df[amount_column], label="Total Amount", marker='o')
-                    ax.set_xlabel('Salary')
-                    ax.set_ylabel('Total Amount')
-                    ax.set_title('Total Amount Growth Over Salary')
-                    ax.legend()
-                    st.pyplot(fig)
+                # Plot the Growth Insights
+                st.markdown("### Growth Insights Visualization:")
+                fig, ax = plt.subplots(figsize=(10, 6))
+                ax.plot(df[salary_column], df[amount_column], label="Total Amount", marker='o')
+                ax.set_xlabel('Salary')
+                ax.set_ylabel('Total Amount')
+                ax.set_title('Total Amount Growth Over Salary')
+                ax.legend()
+                st.pyplot(fig)
 
-                    # Plot the Growth Rate
-                    fig2, ax2 = plt.subplots(figsize=(10, 6))
-                    ax2.plot(df[salary_column], df['Growth Rate'], label="Growth Rate", marker='x', color='r')
-                    ax2.set_xlabel('Salary')
-                    ax2.set_ylabel('Growth Rate (%)')
-                    ax2.set_title('Growth Rate Based on Salary')
-                    ax2.legend()
-                    st.pyplot(fig2)
+                # Plot the Growth Rate
+                fig2, ax2 = plt.subplots(figsize=(10, 6))
+                ax2.plot(df[salary_column], df['Growth Rate'], label="Growth Rate", marker='x', color='r')
+                ax2.set_xlabel('Salary')
+                ax2.set_ylabel('Growth Rate (%)')
+                ax2.set_title('Growth Rate Based on Salary')
+                ax2.legend()
+                st.pyplot(fig2)
 
-                    # Create the PDF Report
-                    report_data = {
-                        "Overview": "This report provides insights into the financial performance, including growth rates and total amount trends.",
-                        "Growth Insights": f"The total amount growth rates for the different salary levels are detailed in the table above.",
-                        "Growth Visualization": "The following visualizations show the total amount trends and growth rates over different salary levels."
-                    }
-                    pdf_report = generate_pdf_report(report_data)
+                # Create the PDF Report
+                report_data = {
+                    "Overview": "This report provides insights into the financial performance, including growth rates and total amount trends.",
+                    "Growth Insights": f"The total amount growth rates for the different salary levels are detailed in the table above.",
+                    "Growth Visualization": "The following visualizations show the total amount trends and growth rates over different salary levels."
+                }
+                pdf_report = generate_pdf_report(report_data)
 
-                    # Provide a download link for the PDF report
-                    st.download_button(
-                        label="Download PDF Report",
-                        data=pdf_report,
-                        file_name="financial_analysis_report.pdf",
-                        mime="application/pdf"
-                    )
-                else:
-                    st.error("Could not identify appropriate columns for 'Salary' and 'Total Amount'.")
+                # Provide a download link for the PDF report
+                st.markdown("### Download PDF Report:")
+                st.download_button(
+                    label="Download PDF Report",
+                    data=pdf_report,
+                    file_name="financial_analysis_report.pdf",
+                    mime="application/pdf"
+                )
             else:
-                st.error("No mapped columns found for 'Salary' and 'Total Amount'.")
+                st.error("Could not identify appropriate columns for 'Salary' and 'Total Amount'.")
         else:
             st.error("Could not extract data from the uploaded document.")
 

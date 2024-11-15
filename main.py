@@ -2,11 +2,6 @@ import streamlit as st
 import pandas as pd
 import pdfplumber
 import matplotlib.pyplot as plt
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-GOOGLE_API_KEY = os.getenv("AIzaSyD4hZdqWNVQaC2yQh-yXsw4VzFmmm8qRLQ")
 
 # Main application
 def main():

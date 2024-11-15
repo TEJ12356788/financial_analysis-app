@@ -20,6 +20,11 @@ def extract_pdf_table(pdf_file):
                 return df
     return None
 
+# Helper Function to Clean and Normalize Column Names
+def clean_column_names(df):
+    df.columns = df.columns.str.strip()  # Remove leading/trailing spaces
+    return df
+
 # Helper Function to Calculate Growth Insights
 def calculate_growth(df):
     # Assuming the DataFrame contains 'Salary' and 'Total Amount' columns
@@ -63,12 +68,16 @@ if uploaded_file:
         elif uploaded_file.name.endswith(".pdf"):
             df = extract_pdf_table(uploaded_file)
         
-        # Display the DataFrame for user inspection
+        # Clean column names
         if df is not None:
+            df = clean_column_names(df)
+
+            # Display the DataFrame and column names for user inspection
             st.write("Uploaded Data:")
             st.dataframe(df)
+            st.write("Column Names:", df.columns)
             
-            # Calculate Growth Insights (assuming 'Salary' and 'Total Amount' columns)
+            # Check if necessary columns exist
             if 'Salary' in df.columns and 'Total Amount' in df.columns:
                 df = calculate_growth(df)
                 st.write("Growth Insights:")

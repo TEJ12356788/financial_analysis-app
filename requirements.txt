@@ -3,3 +3,5 @@ pandas
 pdfplumber
 matplotlib
 openpyxl
+reportlab
+tk

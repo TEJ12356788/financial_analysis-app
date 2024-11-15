@@ -27,14 +27,15 @@ def clean_column_names(df):
 
 # Helper Function to Calculate Growth Insights
 def calculate_growth(df, salary_column, amount_column):
-    # Ensure the 'Salary' and 'Total Amount' columns are numeric
+    # Convert non-numeric columns to NaN (use 'coerce' to handle errors)
     df[amount_column] = pd.to_numeric(df[amount_column], errors='coerce')
     
-    # Filter out any non-numeric columns, only allow numeric for growth calculation
-    df = df.select_dtypes(include=[np.number])
+    # Check if the columns to be analyzed are numeric
+    df = df.select_dtypes(include=[np.number])  # Ensure only numeric columns are used
     
-    # Avoid comparison errors by checking if the required columns exist in the DataFrame
+    # Check that the salary and amount columns exist
     if salary_column in df.columns and amount_column in df.columns:
+        # Calculate growth rate for the Total Amount
         df['Growth Rate'] = df[amount_column].pct_change() * 100  # Growth rate in percentage
     return df
 

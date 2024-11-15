@@ -27,16 +27,8 @@ def clean_column_names(df):
 
 # Helper Function to Calculate Growth Insights
 def calculate_growth(df, salary_column, amount_column):
-    # Convert non-numeric columns to NaN (use 'coerce' to handle errors)
     df[amount_column] = pd.to_numeric(df[amount_column], errors='coerce')
-    
-    # Check if the columns to be analyzed are numeric
-    df = df.select_dtypes(include=[np.number])  # Ensure only numeric columns are used
-    
-    # Check that the salary and amount columns exist
-    if salary_column in df.columns and amount_column in df.columns:
-        # Calculate growth rate for the Total Amount
-        df['Growth Rate'] = df[amount_column].pct_change() * 100  # Growth rate in percentage
+    df['Growth Rate'] = df[amount_column].pct_change() * 100  # Growth rate in percentage
     return df
 
 # Helper Function to Generate PDF Report
@@ -79,13 +71,10 @@ if uploaded_file:
         if df is not None:
             df = clean_column_names(df)
 
-            # Display the DataFrame with nice styling
-            st.markdown("### Uploaded Data Preview:")
-            st.dataframe(df.style.highlight_max(axis=0))  # Highlights the maximum values for each column
-            
-            # Display column names to help users understand the data structure
-            st.markdown("### Column Names:")
-            st.write(df.columns)
+            # Display the DataFrame and column names for user inspection
+            st.write("Uploaded Data:")
+            st.dataframe(df)
+            st.write("Column Names:", df.columns)
 
             # Explicit column mapping (based on the output you shared)
             column_mapping = {
@@ -103,13 +92,10 @@ if uploaded_file:
             if salary_column and amount_column:
                 # Calculate Growth Insights using the mapped columns
                 df = calculate_growth(df, salary_column, amount_column)
-
-                # Display the growth insights in a styled table
-                st.markdown("### Growth Insights:")
-                st.dataframe(df[[salary_column, amount_column, 'Growth Rate']].style.format({salary_column: "{:,.0f}", amount_column: "{:,.2f}", 'Growth Rate': "{:.2f}%"}))
+                st.write("Growth Insights:")
+                st.dataframe(df[[salary_column, amount_column, 'Growth Rate']])
 
                 # Plot the Growth Insights
-                st.markdown("### Growth Insights Visualization:")
                 fig, ax = plt.subplots(figsize=(10, 6))
                 ax.plot(df[salary_column], df[amount_column], label="Total Amount", marker='o')
                 ax.set_xlabel('Salary')
@@ -136,7 +122,6 @@ if uploaded_file:
                 pdf_report = generate_pdf_report(report_data)
 
                 # Provide a download link for the PDF report
-                st.markdown("### Download PDF Report:")
                 st.download_button(
                     label="Download PDF Report",
                     data=pdf_report,

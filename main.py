@@ -27,19 +27,8 @@ def clean_column_names(df):
 
 # Helper Function to Calculate Growth Insights
 def calculate_growth(df, salary_column, amount_column):
-    # Print the column data types for debugging purposes
-    st.write("Column Data Types:", df.dtypes)
-
-    # Convert relevant columns to numeric, coercing errors
     df[amount_column] = pd.to_numeric(df[amount_column], errors='coerce')
-    
-    # Ensure that only numeric columns are used for growth calculation
-    df = df.select_dtypes(include=[np.number])  # Filter out non-numeric columns
-    
-    # Check that the salary and amount columns exist
-    if salary_column in df.columns and amount_column in df.columns:
-        # Calculate growth rate for the Total Amount
-        df['Growth Rate'] = df[amount_column].pct_change() * 100  # Growth rate in percentage
+    df['Growth Rate'] = df[amount_column].pct_change() * 100  # Growth rate in percentage
     return df
 
 # Helper Function to Generate PDF Report
@@ -65,7 +54,7 @@ def generate_pdf_report(report_data):
     pdf_buffer.seek(0)
     return pdf_buffer
 
-# Upload Section
+# File Upload Section
 uploaded_file = st.file_uploader("Upload a financial document (CSV, Excel, or PDF)", type=["csv", "xlsx", "pdf"])
 
 if uploaded_file:
@@ -82,15 +71,15 @@ if uploaded_file:
         if df is not None:
             df = clean_column_names(df)
 
-            # Display the DataFrame with nice styling
+            # Display the DataFrame
             st.markdown("### Uploaded Data Preview:")
-            st.dataframe(df.style.highlight_max(axis=0))  # Highlights the maximum values for each column
-            
-            # Display column names and data types to help users understand the data structure
-            st.markdown("### Column Names and Data Types:")
-            st.write(df.dtypes)
+            st.dataframe(df)
 
-            # Explicit column mapping (based on the output you shared)
+            # Display column names to help users understand the data structure
+            st.markdown("### Column Names:")
+            st.write(df.columns)
+
+            # Mapped Columns (you can adjust these based on actual data)
             column_mapping = {
                 'Salary Amount': 'Salary',
                 'Total Amount': 'Total Amount'
@@ -99,7 +88,6 @@ if uploaded_file:
             # Check for columns by mapping
             mapped_columns = {new_col: old_col for old_col, new_col in column_mapping.items() if old_col in df.columns}
 
-            # Directly use the mapped columns without displaying them
             salary_column = mapped_columns.get('Salary', None)
             amount_column = mapped_columns.get('Total Amount', None)
 
@@ -153,4 +141,3 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
-

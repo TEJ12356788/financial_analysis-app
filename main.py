@@ -22,9 +22,9 @@ def extract_pdf_table(pdf_file):
 
 # Helper Function to Calculate Growth Insights
 def calculate_growth(df):
-    # Assuming the DataFrame contains 'Year' and 'Revenue' columns
-    df['Revenue'] = pd.to_numeric(df['Revenue'], errors='coerce')
-    df['Growth Rate'] = df['Revenue'].pct_change() * 100  # Growth rate in percentage
+    # Assuming the DataFrame contains 'Salary' and 'Total Amount' columns
+    df['Total Amount'] = pd.to_numeric(df['Total Amount'], errors='coerce')
+    df['Growth Rate'] = df['Total Amount'].pct_change() * 100  # Growth rate in percentage
     return df
 
 # Helper Function to Generate PDF Report
@@ -68,35 +68,35 @@ if uploaded_file:
             st.write("Uploaded Data:")
             st.dataframe(df)
             
-            # Calculate Growth Insights (assuming 'Year' and 'Revenue' columns)
-            if 'Year' in df.columns and 'Revenue' in df.columns:
+            # Calculate Growth Insights (assuming 'Salary' and 'Total Amount' columns)
+            if 'Salary' in df.columns and 'Total Amount' in df.columns:
                 df = calculate_growth(df)
                 st.write("Growth Insights:")
-                st.dataframe(df[['Year', 'Revenue', 'Growth Rate']])
+                st.dataframe(df[['Salary', 'Total Amount', 'Growth Rate']])
                 
                 # Plot the Growth Insights
                 fig, ax = plt.subplots(figsize=(10, 6))
-                ax.plot(df['Year'], df['Revenue'], label="Revenue", marker='o')
-                ax.set_xlabel('Year')
-                ax.set_ylabel('Revenue')
-                ax.set_title('Revenue Growth Over Time')
+                ax.plot(df['Salary'], df['Total Amount'], label="Total Amount", marker='o')
+                ax.set_xlabel('Salary')
+                ax.set_ylabel('Total Amount')
+                ax.set_title('Total Amount Growth Over Salary')
                 ax.legend()
                 st.pyplot(fig)
                 
                 # Plot the Growth Rate
                 fig2, ax2 = plt.subplots(figsize=(10, 6))
-                ax2.plot(df['Year'], df['Growth Rate'], label="Growth Rate", marker='x', color='r')
-                ax2.set_xlabel('Year')
+                ax2.plot(df['Salary'], df['Growth Rate'], label="Growth Rate", marker='x', color='r')
+                ax2.set_xlabel('Salary')
                 ax2.set_ylabel('Growth Rate (%)')
-                ax2.set_title('Yearly Growth Rate')
+                ax2.set_title('Growth Rate Based on Salary')
                 ax2.legend()
                 st.pyplot(fig2)
             
                 # Create the PDF Report
                 report_data = {
-                    "Overview": "This report provides insights into the financial performance, including growth rates and revenue trends.",
-                    "Growth Insights": f"The revenue growth rates for the years analyzed are detailed in the table above.",
-                    "Growth Visualization": "The following visualizations show the revenue trends and growth rates over time."
+                    "Overview": "This report provides insights into the financial performance, including growth rates and total amount trends.",
+                    "Growth Insights": f"The total amount growth rates for the different salary levels are detailed in the table above.",
+                    "Growth Visualization": "The following visualizations show the total amount trends and growth rates over different salary levels."
                 }
                 pdf_report = generate_pdf_report(report_data)
                 
@@ -108,7 +108,7 @@ if uploaded_file:
                     mime="application/pdf"
                 )
             else:
-                st.error("The uploaded document doesn't contain the necessary columns ('Year' and 'Revenue') for analysis.")
+                st.error("The uploaded document doesn't contain the necessary columns ('Salary' and 'Total Amount') for analysis.")
         else:
             st.error("Could not extract data from the uploaded document.")
 
